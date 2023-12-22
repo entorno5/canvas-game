@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R-TYPE</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background-color: #333; /* Fondo gris oscuro */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative; /* Agregado para posicionar start-container y canvas relativamente */
+      height: 100vh;
+    }
+
+    #start-container {
+      background-color: #333;
+    }
+
+    #start-container, #canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: absolute; /* Ajustado para posicionar absolutamente start-container y canvas */
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    #startButton {
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      background-color: #4CAF50; /* Color verde, puedes cambiarlo según tus preferencias */
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    #startButton:hover {
+      background-color: #45a049; /* Cambia el color al pasar el ratón por encima */
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    canvas {
+      background-color: #000;
+      width: 800px;
+      height: 600px;
+
+    }
+
+    #puntuacion-container {
+      color: #fff;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h1>R-TYPE</h1>
+    <div id="start-container">
+      <button id="startButton">START</button>
+    </div>
+    <canvas id="miCanvas"></canvas>
+    <div id="puntuacion-container">
+      Vidas: <span id="vidas">3</span> - Puntuación: <span id="puntuacion">0</span>
+    </div>
+  </div>
+
+  <script>
+
+    const sound = new window.Audio("mp3/music.mp3");
+    const canvas = document.getElementById('miCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800; // Tamaño fijo en píxeles
+    canvas.height = 600; // Tamaño fijo en píxeles
+    ctx.scale(1, 1);
+    const infoVidas = document.getElementById('vidas');
+    const infoPuntuacion = document.getElementById('puntuacion');
+
+    const VELOCIDAD_NAVE = 5;
+    const VELOCIDAD_BALA = 10;
+
+    const nave = {
+      x: 50,
+      y: 50,
+      size: 60
+    };
+
+    let balas = [];
+    let vidas = 3;
+    let puntuacion = 0;
+
+    const startContainer = document.getElementById('start-container');
+    const startButton = document.getElementById('startButton');
+    const canvasContainer = document.getElementById('info');
+
+    function startGame() {
+      // Asociar el evento de teclado
+      window.addEventListener('keydown', manejarTeclado);
+      startContainer.style.display = 'none';
+      canvasContainer.style.display = 'flex';
+      sound.volume = 0.1; 
+      sound.play();
+      update();
+    }
+
+    startButton.addEventListener('click', startGame);    
+
+    const imagenNave = new Image();
+    imagenNave.src = 'img/nave.png'; // Reemplaza con la ruta correcta de tu imagen
+
+    function dibujarNave() {
+      ctx.drawImage(imagenNave, nave.x, nave.y, nave.size, nave.size);
+    }
+
+    function dibujarBalas() {
+      for (const bala of balas) {
+        ctx.fillStyle = bala.color;
+        ctx.beginPath();
+        ctx.arc(bala.x, bala.y + bala.size / 2, bala.size / 2, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+
+    function dibujarInfo() {
+      infoVidas.textContent = vidas;
+      infoPuntuacion.textContent = puntuacion;
+    }
+
+    function draw() {
+      // Limitar la posición de la nave al canvas
+      nave.y = Math.max(0, Math.min(canvas.height - nave.size, nave.y));
+      nave.x = Math.max(0, Math.min(canvas.width - nave.size, nave.x));
+
+      // Mover las balas
+      for (const bala of balas) {
+        bala.x += bala.speed;
+      }
+
+      // Filtrar balas que están fuera de la pantalla
+      balas = balas.filter(bala => bala.x <= canvas.width);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas
+
+      dibujarNave();
+      dibujarBalas();
+      dibujarInfo();
+    }
+
+    function manejarTeclado(event) {
+      switch (event.key) {
+        case 'ArrowUp':
+          nave.y -= VELOCIDAD_NAVE;
+          break;
+        case 'ArrowDown':
+          nave.y += VELOCIDAD_NAVE;
+          break;
+        case 'ArrowLeft':
+          nave.x -= VELOCIDAD_NAVE;
+          break;
+        case 'ArrowRight':
+          nave.x += VELOCIDAD_NAVE;
+          break;
+        case ' ':
+          dispararBala();
+          break;
+      }
+    }
+
+    function dispararBala() {
+      const nuevaBala = {
+        x: nave.x + nave.size,
+        y: nave.y + nave.size / 2 - 2.5, // Ajustar la posición de la bala para centrarla en la nave
+        size: 10,
+        speed: VELOCIDAD_BALA,
+        color: 'red'
+      };
+
+      balas.push(nuevaBala);
+    }
+
+    function update() {
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    // Iniciar el bucle del juego
+    update();
+  </script>
+</body>
+</html>

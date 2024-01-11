@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,8 @@
       margin: 0;
       overflow: hidden;
       font-family: Arial, sans-serif;
-      background-color: #333; /* Fondo gris oscuro */
+      background-color: #333;
+      /* Fondo gris oscuro */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -22,7 +24,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative; /* Agregado para posicionar start-container y canvas relativamente */
+      position: relative;
+      /* Agregado para posicionar start-container y canvas relativamente */
       height: 100vh;
     }
 
@@ -30,12 +33,14 @@
       background-color: #333;
     }
 
-    #start-container, #canvas-container {
+    #start-container,
+    #canvas-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: absolute; /* Ajustado para posicionar absolutamente start-container y canvas */
+      position: absolute;
+      /* Ajustado para posicionar absolutamente start-container y canvas */
       top: 0;
       left: 0;
       right: 0;
@@ -46,14 +51,16 @@
       padding: 10px 20px;
       font-size: 18px;
       cursor: pointer;
-      background-color: #4CAF50; /* Color verde, puedes cambiarlo según tus preferencias */
+      background-color: #4CAF50;
+      /* Color verde, puedes cambiarlo según tus preferencias */
       color: white;
       border: none;
       border-radius: 5px;
     }
 
     #startButton:hover {
-      background-color: #45a049; /* Cambia el color al pasar el ratón por encima */
+      background-color: #45a049;
+      /* Cambia el color al pasar el ratón por encima */
     }
 
     h1 {
@@ -74,6 +81,7 @@
     }
   </style>
 </head>
+
 <body>
   <div id="info">
     <h1>R-TYPE</h1>
@@ -88,6 +96,7 @@
 
   <script>
 
+    let gameStarted = false;
     const sound = new window.Audio("mp3/music.mp3");
     const canvas = document.getElementById('miCanvas');
     const ctx = canvas.getContext('2d');
@@ -97,7 +106,7 @@
     const infoVidas = document.getElementById('vidas');
     const infoPuntuacion = document.getElementById('puntuacion');
 
-    const VELOCIDAD_NAVE = 5;
+    const VELOCIDAD_NAVE = 4;
     const VELOCIDAD_BALA = 10;
 
     const nave = {
@@ -110,24 +119,61 @@
     let vidas = 3;
     let puntuacion = 0;
 
+    let enemigos = [];
+    const VELOCIDAD_ENEMIGO_MIN = 1;
+    const VELOCIDAD_ENEMIGO_MAX = 3;
+    const MAX_ENEMIGOS_EN_PANTALLA = 3;
+
+    let hero = {
+      x: 0,
+      y: 0,
+    };  
+
     const startContainer = document.getElementById('start-container');
     const startButton = document.getElementById('startButton');
     const canvasContainer = document.getElementById('info');
 
+    let LEFT = false; 
+    let RIGHT = false;
+    let UP = false;
+    let DOWN = false;
+
+    document.onkeydown = function(e) {
+      if (e.key === "o") LEFT = true;
+      if (e.key === "p") RIGHT = true;
+      if (e.key === "q") UP = true;
+      if (e.key === "a") DOWN = true;
+      if (e.key === " ") dispararBala();
+    }
+
+    document.onkeyup = function(e) {
+      if (e.key === "o") LEFT = false;
+      if (e.key === "p") RIGHT = false;
+      if (e.key === "q") UP = false;
+      if (e.key === "a") DOWN = false;
+    }
+
     function startGame() {
-      // Asociar el evento de teclado
-      window.addEventListener('keydown', manejarTeclado);
+      gameStarted = true;
       startContainer.style.display = 'none';
       canvasContainer.style.display = 'flex';
-      sound.volume = 0.1; 
+      sound.volume = 0.1;
       sound.play();
+      sound.addEventListener('ended', restartOnEnd);
       update();
     }
 
-    startButton.addEventListener('click', startGame);    
+    startButton.addEventListener('click', startGame);
+
+    function restartOnEnd() {
+      sound.play();
+    }
 
     const imagenNave = new Image();
     imagenNave.src = 'img/nave.png'; // Reemplaza con la ruta correcta de tu imagen
+
+    const imagenEnemigo = new Image();
+    imagenEnemigo.src = 'img/enemigo.png';
 
     function dibujarNave() {
       ctx.drawImage(imagenNave, nave.x, nave.y, nave.size, nave.size);
@@ -148,7 +194,61 @@
       infoPuntuacion.textContent = puntuacion;
     }
 
+    function generarEnemigo() {
+      const nuevoEnemigo = {
+        x: canvas.width,
+        y: Math.random() * (canvas.height - nave.size),
+        size: 30,
+        speed: Math.random() * (VELOCIDAD_ENEMIGO_MAX - VELOCIDAD_ENEMIGO_MIN) + VELOCIDAD_ENEMIGO_MIN,
+      };
+
+      enemigos.push(nuevoEnemigo);
+    }
+
+    function dibujarEnemigos() {
+      for (const enemigo of enemigos) {
+        ctx.drawImage(imagenEnemigo, enemigo.x, enemigo.y, enemigo.size, enemigo.size);
+      }
+    }
+
+    function moverEnemigos() {
+      for (const enemigo of enemigos) {
+        enemigo.x -= enemigo.speed;
+      }
+
+      enemigos = enemigos.filter(enemigo => enemigo.x > -enemigo.size);
+
+      if (enemigos.length < MAX_ENEMIGOS_EN_PANTALLA && Math.random() < 0.02) {
+        generarEnemigo();
+      }
+    }
+
+    function colision(obj1, obj2) {
+      return (
+        obj1.x < obj2.x + obj2.size &&
+        obj1.x + obj1.size > obj2.x &&
+        obj1.y < obj2.y + obj2.size &&
+        obj1.y + obj1.size > obj2.y
+      );
+    }
+
     function draw() {
+      // Verificar colisiones entre balas y enemigos
+      for (let i = 0; i < balas.length; i++) {
+        for (let j = 0; j < enemigos.length; j++) {
+          if (colision(balas[i], enemigos[j])) {
+            // Eliminar la bala y el enemigo
+            balas.splice(i, 1);
+            enemigos.splice(j, 1);
+
+            // Sumar 20 puntos a la puntuación
+            puntuacion += 20;
+
+            // Salir del bucle interno, ya que una bala no puede golpear a múltiples enemigos
+            break;
+          }
+        }
+      }
       // Limitar la posición de la nave al canvas
       nave.y = Math.max(0, Math.min(canvas.height - nave.size, nave.y));
       nave.x = Math.max(0, Math.min(canvas.width - nave.size, nave.x));
@@ -166,27 +266,10 @@
       dibujarNave();
       dibujarBalas();
       dibujarInfo();
+      moverEnemigos();
+      dibujarEnemigos();
     }
 
-    function manejarTeclado(event) {
-      switch (event.key) {
-        case 'ArrowUp':
-          nave.y -= VELOCIDAD_NAVE;
-          break;
-        case 'ArrowDown':
-          nave.y += VELOCIDAD_NAVE;
-          break;
-        case 'ArrowLeft':
-          nave.x -= VELOCIDAD_NAVE;
-          break;
-        case 'ArrowRight':
-          nave.x += VELOCIDAD_NAVE;
-          break;
-        case ' ':
-          dispararBala();
-          break;
-      }
-    }
 
     function dispararBala() {
       const nuevaBala = {
@@ -200,13 +283,35 @@
       balas.push(nuevaBala);
     }
 
+    function move() {
+      
+      if(LEFT) { 
+        nave.x -= VELOCIDAD_NAVE;
+      }
+      if(RIGHT) {
+        nave.x += VELOCIDAD_NAVE;
+      }
+      if(UP) {
+        nave.y -= VELOCIDAD_NAVE;
+      }
+      if(DOWN) {
+        nave.y += VELOCIDAD_NAVE;
+      }
+      
+      
+    }    
+
     function update() {
-      draw();
-      requestAnimationFrame(update);
+      if (gameStarted) {
+        draw();
+        move();
+        requestAnimationFrame(update);
+      }
     }
 
     // Iniciar el bucle del juego
     update();
   </script>
 </body>
+
 </html>

@@ -86,6 +86,9 @@
   <div id="info">
     <h1>R-TYPE</h1>
     <div id="start-container">
+      <div id="gameOver-container" style="display: none; color: white; font-size: 24px;">
+        Game Over
+      </div>
       <button id="startButton">START</button>
     </div>
     <canvas id="miCanvas"></canvas>
@@ -127,18 +130,19 @@
     let hero = {
       x: 0,
       y: 0,
-    };  
+    };
 
     const startContainer = document.getElementById('start-container');
     const startButton = document.getElementById('startButton');
     const canvasContainer = document.getElementById('info');
+    const gameOverContainer = document.getElementById('gameOver-container');
 
-    let LEFT = false; 
+    let LEFT = false;
     let RIGHT = false;
     let UP = false;
     let DOWN = false;
 
-    document.onkeydown = function(e) {
+    document.onkeydown = function (e) {
       if (e.key === "o") LEFT = true;
       if (e.key === "p") RIGHT = true;
       if (e.key === "q") UP = true;
@@ -146,7 +150,7 @@
       if (e.key === " ") dispararBala();
     }
 
-    document.onkeyup = function(e) {
+    document.onkeyup = function (e) {
       if (e.key === "o") LEFT = false;
       if (e.key === "p") RIGHT = false;
       if (e.key === "q") UP = false;
@@ -157,6 +161,7 @@
       gameStarted = true;
       startContainer.style.display = 'none';
       canvasContainer.style.display = 'flex';
+      gameOverContainer.style.display = 'none';
       sound.volume = 0.1;
       sound.play();
       sound.addEventListener('ended', restartOnEnd);
@@ -190,6 +195,19 @@
     }
 
     function dibujarInfo() {
+      if (vidas === 0) {
+        gameStarted = false;
+        startContainer.style.display = 'flex';
+        sound.pause();
+        sound.currentTime = 0;
+        vidas = 3;
+        puntuacion = 0;
+        balas = [];
+        enemigos = [];
+        nave.x = 50;
+        nave.y = 50;
+        gameOverContainer.style.display = 'flex';
+      }
       infoVidas.textContent = vidas;
       infoPuntuacion.textContent = puntuacion;
     }
@@ -233,6 +251,17 @@
     }
 
     function draw() {
+      // Verificar colisiones entre enemigos y nave
+      for (let j = 0; j < enemigos.length; j++) {
+        if (colision(nave, enemigos[j])) {
+          // Eliminar el enemigo
+          enemigos.splice(j, 1);
+          // Restar una vida
+          vidas--;
+          break;
+        }
+      }
+
       // Verificar colisiones entre balas y enemigos
       for (let i = 0; i < balas.length; i++) {
         for (let j = 0; j < enemigos.length; j++) {
@@ -284,22 +313,22 @@
     }
 
     function move() {
-      
-      if(LEFT) { 
+
+      if (LEFT) {
         nave.x -= VELOCIDAD_NAVE;
       }
-      if(RIGHT) {
+      if (RIGHT) {
         nave.x += VELOCIDAD_NAVE;
       }
-      if(UP) {
+      if (UP) {
         nave.y -= VELOCIDAD_NAVE;
       }
-      if(DOWN) {
+      if (DOWN) {
         nave.y += VELOCIDAD_NAVE;
       }
-      
-      
-    }    
+
+
+    }
 
     function update() {
       if (gameStarted) {
